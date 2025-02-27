@@ -65,11 +65,16 @@
   display: none;
 }
 
-.voice-toggle {
+.voice-controls {
   position: absolute;
   right: 8px;
   top: 50%;
   transform: translateY(-50%);
+  display: flex;
+  gap: 4px;
+}
+
+.voice-toggle {
   padding: 4px 8px;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);

@@ -17,12 +17,28 @@ interface ChatMessage {
     <div class="chat-container" [class.minimized]="isMinimized()">
       <div class="chat-header" (click)="toggleMinimize()">
         Chat {{ isMinimized() ? '▲' : '▼' }}
-        <button 
-          class="voice-toggle"
-          [class.active]="networkService.voiceChatEnabled()"
-          (click)="toggleVoiceChat($event)">
-          🎤
-        </button>
+        <div class="voice-controls" (click)="$event.stopPropagation()">
+          <button 
+            class="voice-toggle"
+            [class.active]="networkService.voiceChatEnabled()"
+            (click)="toggleVoiceChat($event)">
+            🎤
+          </button>
+          <button 
+            *ngIf="networkService.voiceChatEnabled()"
+            class="voice-toggle"
+            [class.active]="!networkService.isMicrophoneMuted()"
+            (click)="toggleMicrophone($event)">
+            {{ networkService.isMicrophoneMuted() ? '🔇' : '🗣️' }}
+          </button>
+          <button 
+            *ngIf="networkService.voiceChatEnabled()"
+            class="voice-toggle"
+            [class.active]="networkService.isIncomingAudioEnabled()"
+            (click)="toggleIncomingAudio($event)">
+            {{ networkService.isIncomingAudioEnabled() ? '👂' : '🔈' }}
+          </button>
+        </div>
       </div>
       <div class="chat-content">
         <div class="messages" #messagesContainer>
@@ -100,6 +116,16 @@ export class ChatOverlayComponent {
     } else {
       await this.networkService.enableVoiceChat();
     }
+  }
+
+  async toggleMicrophone(event: MouseEvent) {
+    event.stopPropagation();
+    await this.networkService.toggleMicrophone();
+  }
+
+  toggleIncomingAudio(event: MouseEvent) {
+    event.stopPropagation();
+    this.networkService.toggleIncomingAudio(!this.networkService.isIncomingAudioEnabled());
   }
 
   private scrollToBottom() {

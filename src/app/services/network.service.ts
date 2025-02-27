@@ -26,6 +26,8 @@ export class NetworkService {
   readonly message = signal<{message: PeerMessage, peerId: string} | null>(null);
   readonly messages = signal<{message: PeerMessage, peerId: string}[]>([]);
   readonly voiceChatEnabled = signal(false);
+  readonly isMicrophoneMuted = signal(false);
+  readonly isIncomingAudioEnabled = signal(true);
 
   constructor() {
     this.initializeNetwork();
@@ -92,6 +94,10 @@ export class NetworkService {
         video: false
       });
 
+      // Reset mute state when enabling
+      this.isMicrophoneMuted.set(false);
+      this.isIncomingAudioEnabled.set(true);
+
       this.room.addStream(this.localStream);
       this.room.onPeerJoin(peerId => {
         if (this.localStream) {
@@ -123,6 +129,24 @@ export class NetworkService {
     this.peerAudios = {};
     
     this.voiceChatEnabled.set(false);
+  }
+
+  async toggleMicrophone() {
+    if (!this.localStream) return;
+    
+    this.localStream.getAudioTracks().forEach(track => {
+      track.enabled = !track.enabled;
+    });
+    
+    this.isMicrophoneMuted.update(muted => !muted);
+  }
+
+  toggleIncomingAudio(enabled: boolean) {
+    Object.values(this.peerAudios).forEach(audio => {
+      audio.muted = !enabled;
+    });
+    
+    this.isIncomingAudioEnabled.set(enabled);
   }
 
   getSelfId() {
