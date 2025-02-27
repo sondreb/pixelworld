@@ -17,6 +17,12 @@ interface ChatMessage {
     <div class="chat-container" [class.minimized]="isMinimized()">
       <div class="chat-header" (click)="toggleMinimize()">
         Chat {{ isMinimized() ? '▲' : '▼' }}
+        <button 
+          class="voice-toggle"
+          [class.active]="networkService.voiceChatEnabled()"
+          (click)="toggleVoiceChat($event)">
+          🎤
+        </button>
       </div>
       <div class="chat-content">
         <div class="messages" #messagesContainer>
@@ -84,6 +90,16 @@ export class ChatOverlayComponent {
 
   toggleMinimize() {
     this.isMinimized.update(v => !v);
+  }
+
+  async toggleVoiceChat(event: MouseEvent) {
+    event.stopPropagation();
+    
+    if (this.networkService.voiceChatEnabled()) {
+      await this.networkService.disableVoiceChat();
+    } else {
+      await this.networkService.enableVoiceChat();
+    }
   }
 
   private scrollToBottom() {

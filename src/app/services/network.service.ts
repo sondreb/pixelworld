@@ -19,10 +19,13 @@ export interface PeerInfo {
 export class NetworkService {
   private room?: Room;
   private peerNames = new Map<string, string>();
+  private peerAudios: { [key: string]: HTMLAudioElement } = {};
+  private localStream?: MediaStream;
   
   readonly peers = signal<string[]>([]);
   readonly message = signal<{message: PeerMessage, peerId: string} | null>(null);
   readonly messages = signal<{message: PeerMessage, peerId: string}[]>([]);
+  readonly voiceChatEnabled = signal(false);
 
   constructor() {
     this.initializeNetwork();
@@ -78,6 +81,48 @@ export class NetworkService {
     const messageData = { message, peerId: this.getSelfId() };
     this.message.set(messageData);
     this.messages.update(current => [...current, messageData]);
+  }
+
+  async enableVoiceChat() {
+    if (!this.room) return;
+    
+    try {
+      this.localStream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: false
+      });
+
+      this.room.addStream(this.localStream);
+      this.room.onPeerJoin(peerId => {
+        if (this.localStream) {
+          this.room?.addStream(this.localStream, peerId);
+        }
+      });
+
+      this.room.onPeerStream((stream, peerId) => {
+        const audio = new Audio();
+        audio.srcObject = stream;
+        audio.autoplay = true;
+        this.peerAudios[peerId] = audio;
+      });
+
+      this.voiceChatEnabled.set(true);
+    } catch (error) {
+      console.error('Failed to enable voice chat:', error);
+    }
+  }
+
+  async disableVoiceChat() {
+    this.localStream?.getTracks().forEach(track => track.stop());
+    this.localStream = undefined;
+    
+    Object.values(this.peerAudios).forEach(audio => {
+      audio.srcObject = null;
+      audio.remove();
+    });
+    this.peerAudios = {};
+    
+    this.voiceChatEnabled.set(false);
   }
 
   getSelfId() {

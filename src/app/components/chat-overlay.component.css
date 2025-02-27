@@ -16,6 +16,7 @@
   background: rgba(255, 255, 255, 0.1);
   cursor: pointer;
   user-select: none;
+  position: relative;
 }
 
 .chat-content {
@@ -62,4 +63,22 @@
 
 .minimized .chat-content {
   display: none;
+}
+
+.voice-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.voice-toggle.active {
+  background: rgba(0, 255, 0, 0.2);
+  border-color: rgba(0, 255, 0, 0.4);
 }
