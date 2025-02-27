@@ -25,6 +25,12 @@ interface ChatMessage {
             🎤
           </button>
           <button 
+            class="voice-toggle"
+            [class.active]="networkService.videoChatEnabled()"
+            (click)="toggleVideoChat($event)">
+            📹
+          </button>
+          <button 
             *ngIf="networkService.voiceChatEnabled()"
             class="voice-toggle"
             [class.active]="!networkService.isMicrophoneMuted()"
@@ -115,6 +121,16 @@ export class ChatOverlayComponent {
       await this.networkService.disableVoiceChat();
     } else {
       await this.networkService.enableVoiceChat();
+    }
+  }
+
+  async toggleVideoChat(event: MouseEvent) {
+    event.stopPropagation();
+    
+    if (this.networkService.videoChatEnabled()) {
+      await this.networkService.disableVideoChat();
+    } else {
+      await this.networkService.enableVideoChat();
     }
   }
 

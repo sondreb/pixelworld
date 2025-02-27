@@ -6,13 +6,18 @@ import { GameCanvasComponent } from './components/game-canvas.component';
 import { ChatOverlayComponent } from './components/chat-overlay.component';
 import { PosseService } from './services/posse.service';
 import { NetworkService } from './services/network.service';
+import { VideoOverlayComponent } from './components/video-overlay.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, CommonModule, FormsModule, GameCanvasComponent, ChatOverlayComponent],
+  imports: [RouterOutlet, CommonModule, FormsModule, GameCanvasComponent, ChatOverlayComponent, VideoOverlayComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
+  template: `
+    <router-outlet></router-outlet>
+    <app-video-overlay></app-video-overlay>
+  `
 })
 export class AppComponent {
   private posseService = inject(PosseService);

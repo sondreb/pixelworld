@@ -20,14 +20,18 @@ export class NetworkService {
   private room?: Room;
   private peerNames = new Map<string, string>();
   private peerAudios: { [key: string]: HTMLAudioElement } = {};
+  private peerVideos = new Map<string, MediaStream>();
   private localStream?: MediaStream;
+  private localVideoStream?: MediaStream;
   
   readonly peers = signal<string[]>([]);
   readonly message = signal<{message: PeerMessage, peerId: string} | null>(null);
   readonly messages = signal<{message: PeerMessage, peerId: string}[]>([]);
   readonly voiceChatEnabled = signal(false);
+  readonly videoChatEnabled = signal(false);
   readonly isMicrophoneMuted = signal(false);
   readonly isIncomingAudioEnabled = signal(true);
+  readonly peerVideoStreams = signal<Map<string, MediaStream>>(new Map());
 
   constructor() {
     this.initializeNetwork();
@@ -71,6 +75,20 @@ export class NetworkService {
       const messageData = { message: parsedMessage, peerId };
       this.message.set(messageData);
       this.messages.update(current => [...current, messageData]);
+    });
+
+    this.room.onPeerStream((stream, peerId) => {
+      if (stream.getVideoTracks().length > 0) {
+        // Handle video stream
+        this.peerVideos.set(peerId, stream);
+        this.peerVideoStreams.set(this.peerVideos);
+      } else {
+        // Handle audio stream (existing code)
+        const audio = new Audio();
+        audio.srcObject = stream;
+        audio.autoplay = true;
+        this.peerAudios[peerId] = audio;
+      }
     });
   }
 
@@ -129,6 +147,34 @@ export class NetworkService {
     this.peerAudios = {};
     
     this.voiceChatEnabled.set(false);
+  }
+
+  async enableVideoChat() {
+    if (!this.room) return;
+    
+    try {
+      this.localVideoStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: false
+      });
+
+      this.room.addStream(this.localVideoStream);
+      this.room.onPeerJoin(peerId => {
+        if (this.localVideoStream) {
+          this.room?.addStream(this.localVideoStream, peerId);
+        }
+      });
+
+      this.videoChatEnabled.set(true);
+    } catch (error) {
+      console.error('Failed to enable video chat:', error);
+    }
+  }
+
+  async disableVideoChat() {
+    this.localVideoStream?.getTracks().forEach(track => track.stop());
+    this.localVideoStream = undefined;
+    this.videoChatEnabled.set(false);
   }
 
   async toggleMicrophone() {
