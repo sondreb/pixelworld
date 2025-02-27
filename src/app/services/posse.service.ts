@@ -8,6 +8,7 @@ import { NetworkService } from './network.service';
 })
 export class PosseService {
   private posseMembers = new BehaviorSubject<Person[]>([]);
+  private currentPlayerName = `Player ${Math.floor(Math.random() * 1000)}`;
 
   constructor(private networkService: NetworkService) {
     this.initializePosse();
@@ -16,13 +17,24 @@ export class PosseService {
   private initializePosse() {
     // Listen for peer updates
     this.networkService.getPeers().subscribe(peers => {
+      // Create current player entry
+      const currentPlayer: Person = {
+        id: this.networkService.getSelfId(),
+        name: this.currentPlayerName,
+        level: 1,
+        avatar: 'assets/avatars/default.png'
+      };
+
+      // Create peer entries
       const members: Person[] = peers.map(peerId => ({
         id: peerId,
         name: this.networkService.getPeerName(peerId),
         level: 1,
         avatar: 'assets/avatars/default.png'
       }));
-      this.posseMembers.next(members);
+
+      // Combine current player with peers
+      this.posseMembers.next([currentPlayer, ...members]);
     });
 
     // Listen for name updates
@@ -31,6 +43,12 @@ export class PosseService {
         this.networkService.setPeerName(peerId, message.data.name);
         this.updatePosseMembers();
       }
+    });
+
+    // Send initial name to peers
+    this.networkService.sendMessage({
+      type: 'peer-name',
+      data: { name: this.currentPlayerName }
     });
   }
 
