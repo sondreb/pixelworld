@@ -80,6 +80,11 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
+.person.current-player {
+  background: rgba(0, 123, 255, 0.2);
+  border: 1px solid rgba(0, 123, 255, 0.3);
+}
+
 .avatar {
   width: 40px;
   height: 40px;

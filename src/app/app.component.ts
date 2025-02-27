@@ -19,8 +19,10 @@ export class AppComponent implements OnInit {
 
   posseMembers$ = this.posseService.getPosseMembers();
   connectedPeers$ = this.networkService.getPeers();
+  currentPlayerId?: string;
 
   ngOnInit() {
+    this.currentPlayerId = this.networkService.getSelfId();
     // Subscribe to network messages
     this.networkService.onMessage((message, peerId) => {
       console.log('Received message:', message, 'from peer:', peerId);
