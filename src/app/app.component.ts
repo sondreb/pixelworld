@@ -12,12 +12,31 @@ import { VideoOverlayComponent } from './components/video-overlay.component';
   selector: 'app-root',
   standalone: true,
   imports: [RouterOutlet, CommonModule, FormsModule, GameCanvasComponent, ChatOverlayComponent, VideoOverlayComponent],
-  templateUrl: './app.component.html',
-  styleUrl: './app.component.css',
   template: `
-    <router-outlet></router-outlet>
-    <app-video-overlay></app-video-overlay>
-  `
+    <div class="game-container">
+      <aside class="sidebar">
+        <div class="posse-list">
+          <h2>Your Posse</h2>
+          @for (person of posseMembers(); track person.id) {
+            <div class="person" [class.current-player]="person.id === currentPlayerId">
+              <img [src]="person.avatar" [alt]="person.name" class="avatar">
+              <div class="person-info">
+                <div class="name">{{person.name}}</div>
+                <div class="level">Level {{person.level}}</div>
+              </div>
+            </div>
+          }
+        </div>
+      </aside>
+      <main class="game-area">
+        <app-game-canvas></app-game-canvas>
+        <app-chat-overlay></app-chat-overlay>
+        <app-video-overlay></app-video-overlay>
+      </main>
+    </div>
+    <router-outlet />
+  `,
+  styleUrl: './app.component.css'
 })
 export class AppComponent {
   private posseService = inject(PosseService);
