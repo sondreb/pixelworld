@@ -22,6 +22,12 @@ export class NetworkService {
   private async initializeNetwork() {
     const config = {
       appId: 'no.brainbox.pixelworld',
+      relayUrls: ['wss://relay.angor.io'],
+    //   trackerUrls: [
+    //     'wss://tracker.openwebtorrent.com',
+    //     'wss://tracker.btorrent.xyz',
+    //     'wss://tracker.files.fm:7073/announce',
+    //   ]
     };
 
     this.room = joinRoom(config, 'main-room');
