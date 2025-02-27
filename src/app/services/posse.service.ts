@@ -18,6 +18,7 @@ export class PosseService {
     effect(() => {
       const peers = this.networkService.peers();
       
+      // Current player is always included
       const currentPlayer: Person = {
         id: this.networkService.getSelfId(),
         name: this.currentPlayerName,
@@ -25,6 +26,7 @@ export class PosseService {
         avatar: 'assets/avatars/default.png'
       };
 
+      // Only create entries for currently connected peers
       const members: Person[] = peers.map(peerId => ({
         id: peerId,
         name: this.networkService.getPeerName(peerId),
@@ -32,6 +34,7 @@ export class PosseService {
         avatar: 'assets/avatars/default.png'
       }));
 
+      // Replace entire array to remove disconnected peers
       this.posseMembers.set([currentPlayer, ...members]);
     });
 
@@ -55,12 +58,22 @@ export class PosseService {
   }
 
   private updatePosseMembers() {
-    this.posseMembers.update(currentMembers => 
-      currentMembers.map(member => ({
-        ...member,
-        name: this.networkService.getPeerName(member.id)
-      }))
-    );
+    const currentPlayer: Person = {
+      id: this.networkService.getSelfId(),
+      name: this.currentPlayerName,
+      level: 1,
+      avatar: 'assets/avatars/default.png'
+    };
+
+    const peers = this.networkService.peers();
+    const members = peers.map(peerId => ({
+      id: peerId,
+      name: this.networkService.getPeerName(peerId),
+      level: 1,
+      avatar: 'assets/avatars/default.png'
+    }));
+
+    this.posseMembers.set([currentPlayer, ...members]);
   }
 
   getPosseMembers() {
