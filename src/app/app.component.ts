@@ -14,19 +14,11 @@ import { NetworkService } from './services/network.service';
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
 })
-export class AppComponent implements OnInit {
-  posseService = inject(PosseService);
-  networkService = inject(NetworkService);
+export class AppComponent {
+  private posseService = inject(PosseService);
+  private networkService = inject(NetworkService);
 
-  posseMembers$ = this.posseService.getPosseMembers();
-  connectedPeers$ = this.networkService.getPeers();
-  currentPlayerId?: string;
-
-  ngOnInit() {
-    this.currentPlayerId = this.networkService.getSelfId();
-    // Subscribe to network messages
-    this.networkService.onMessage((message, peerId) => {
-      console.log('Received message:', message, 'from peer:', peerId);
-    });
-  }
+  readonly posseMembers = this.posseService.getPosseMembers();
+  readonly connectedPeers = this.networkService.peers();
+  readonly currentPlayerId = this.networkService.getSelfId();
 }

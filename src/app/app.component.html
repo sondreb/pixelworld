@@ -2,14 +2,15 @@
   <aside class="sidebar">
     <div class="posse-list">
       <h2>Your Posse</h2>
-      <div class="person" *ngFor="let person of posseMembers$ | async" 
-           [class.current-player]="person.id === currentPlayerId">
-        <img [src]="person.avatar" [alt]="person.name" class="avatar">
-        <div class="person-info">
-          <div class="name">{{person.name}}</div>
-          <div class="level">Level {{person.level}}</div>
+      @for (person of posseMembers(); track person.id) {
+        <div class="person" [class.current-player]="person.id === currentPlayerId">
+          <img [src]="person.avatar" [alt]="person.name" class="avatar">
+          <div class="person-info">
+            <div class="name">{{person.name}}</div>
+            <div class="level">Level {{person.level}}</div>
+          </div>
         </div>
-      </div>
+      }
     </div>
   </aside>
   <main class="game-area">

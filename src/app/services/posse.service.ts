@@ -1,13 +1,12 @@
-import { Injectable } from '@angular/core';
+import { Injectable, effect, signal } from '@angular/core';
 import { Person } from '../interfaces/person.interface';
-import { BehaviorSubject } from 'rxjs';
 import { NetworkService } from './network.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class PosseService {
-  private posseMembers = new BehaviorSubject<Person[]>([]);
+  private posseMembers = signal<Person[]>([]);
   private currentPlayerName = `Player ${Math.floor(Math.random() * 1000)}`;
 
   constructor(private networkService: NetworkService) {
@@ -15,9 +14,10 @@ export class PosseService {
   }
 
   private initializePosse() {
-    // Listen for peer updates
-    this.networkService.getPeers().subscribe(peers => {
-      // Create current player entry
+    // Create effect to handle peer updates
+    effect(() => {
+      const peers = this.networkService.peers();
+      
       const currentPlayer: Person = {
         id: this.networkService.getSelfId(),
         name: this.currentPlayerName,
@@ -25,7 +25,6 @@ export class PosseService {
         avatar: 'assets/avatars/default.png'
       };
 
-      // Create peer entries
       const members: Person[] = peers.map(peerId => ({
         id: peerId,
         name: this.networkService.getPeerName(peerId),
@@ -33,14 +32,17 @@ export class PosseService {
         avatar: 'assets/avatars/default.png'
       }));
 
-      // Combine current player with peers
-      this.posseMembers.next([currentPlayer, ...members]);
+      this.posseMembers.set([currentPlayer, ...members]);
     });
 
-    // Listen for name updates
-    this.networkService.onMessage((message, peerId) => {
-      if (message.type === 'peer-name') {
-        this.networkService.setPeerName(peerId, message.data.name);
+    // Listen for name updates using message signal
+    effect(() => {
+      const messageData = this.networkService.message();
+      if (messageData && messageData.message.type === 'peer-name') {
+        this.networkService.setPeerName(
+          messageData.peerId, 
+          messageData.message.data.name
+        );
         this.updatePosseMembers();
       }
     });
@@ -53,15 +55,15 @@ export class PosseService {
   }
 
   private updatePosseMembers() {
-    const currentMembers = this.posseMembers.value;
-    const updatedMembers = currentMembers.map(member => ({
-      ...member,
-      name: this.networkService.getPeerName(member.id)
-    }));
-    this.posseMembers.next(updatedMembers);
+    this.posseMembers.update(currentMembers => 
+      currentMembers.map(member => ({
+        ...member,
+        name: this.networkService.getPeerName(member.id)
+      }))
+    );
   }
 
   getPosseMembers() {
-    return this.posseMembers.asObservable();
+    return this.posseMembers;
   }
 }

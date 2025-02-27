@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { joinRoom, Room, selfId } from 'trystero';
 import { BehaviorSubject } from 'rxjs';
 
@@ -18,9 +18,12 @@ export interface PeerInfo {
 })
 export class NetworkService {
   private room?: Room;
-  private peers = new BehaviorSubject<string[]>([]);
   private peerNames = new Map<string, string>();
   
+  readonly peers = signal<string[]>([]);
+  readonly message = signal<{message: PeerMessage, peerId: string} | null>(null);
+  readonly messages = signal<{message: PeerMessage, peerId: string}[]>([]);
+
   constructor() {
     this.initializeNetwork();
   }
@@ -40,8 +43,7 @@ export class NetworkService {
 
     // Handle peer connections
     this.room.onPeerJoin(async (peerId) => {
-      const currentPeers = this.peers.value;
-      this.peers.next([...currentPeers, peerId]);
+      this.peers.update(current => [...current, peerId]);
       
       // Send our name to the new peer
       await this.sendMessage({
@@ -53,14 +55,18 @@ export class NetworkService {
     });
 
     this.room.onPeerLeave((peerId) => {
-      const currentPeers = this.peers.value;
-      this.peers.next(currentPeers.filter(id => id !== peerId));
+      this.peers.update(current => current.filter(id => id !== peerId));
       console.log('Peer left:', peerId);
     });
-  }
 
-  getPeers() {
-    return this.peers.asObservable();
+    // Setup message handling
+    const [_, receive] = this.room.makeAction('message');
+    receive((message, peerId) => {
+      const parsedMessage = JSON.parse(message as string) as PeerMessage;
+      const messageData = { message: parsedMessage, peerId };
+      this.message.set(messageData);
+      this.messages.update(current => [...current, messageData]);
+    });
   }
 
   async sendMessage(message: PeerMessage) {
@@ -68,16 +74,10 @@ export class NetworkService {
     
     const [send] = this.room.makeAction('message');
     await send([JSON.stringify(message)]);
-  }
-
-  onMessage(callback: (message: PeerMessage, peerId: string) => void) {
-    if (!this.room) return;
-
-    const [_, receive] = this.room.makeAction('message');
-    receive((message, peerId) => {
-      const parsedMessage = JSON.parse(message as string) as PeerMessage;
-      callback(parsedMessage, peerId);
-    });
+    
+    const messageData = { message, peerId: this.getSelfId() };
+    this.message.set(messageData);
+    this.messages.update(current => [...current, messageData]);
   }
 
   getSelfId() {

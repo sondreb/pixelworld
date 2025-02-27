@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ViewChild, ElementRef } from '@angular/core';
+import { Component, computed, effect, inject, signal, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NetworkService } from '../services/network.service';
@@ -14,21 +14,24 @@ interface ChatMessage {
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="chat-container" [class.minimized]="isMinimized">
+    <div class="chat-container" [class.minimized]="isMinimized()">
       <div class="chat-header" (click)="toggleMinimize()">
-        Chat {{ isMinimized ? '▲' : '▼' }}
+        Chat {{ isMinimized() ? '▲' : '▼' }}
       </div>
       <div class="chat-content">
         <div class="messages" #messagesContainer>
-          <div *ngFor="let msg of messages" class="message">
-            <span class="sender">{{ networkService.getPeerName(msg.sender) }}:</span>
-            <span class="text">{{ msg.text }}</span>
-          </div>
+          @for (msg of messages(); track msg.timestamp) {
+            <div class="message">
+              <span class="sender">{{ networkService.getPeerName(msg.sender) }}:</span>
+              <span class="text">{{ msg.text }}</span>
+            </div>
+          }
         </div>
         <div class="input-area">
           <input
             #chatInput
-            [(ngModel)]="currentMessage"
+            [ngModel]="currentMessage()"
+            (ngModelChange)="currentMessage.set($event)"
             (keyup.enter)="sendMessage()"
             placeholder="Type a message..."
           />
@@ -39,51 +42,48 @@ interface ChatMessage {
   `,
   styleUrl: './chat-overlay.component.css'
 })
-export class ChatOverlayComponent implements OnInit {
+export class ChatOverlayComponent {
   networkService = inject(NetworkService);
   
   @ViewChild('messagesContainer') messagesContainer!: ElementRef;
   @ViewChild('chatInput') chatInput!: ElementRef;
   
-  messages: ChatMessage[] = [];
-  currentMessage = '';
-  isMinimized = false;
+  readonly isMinimized = signal(false);
+  readonly currentMessage = signal('');
+  readonly messages = signal<ChatMessage[]>([]);
 
-  ngOnInit() {
-    this.networkService.onMessage((message, peerId) => {
-      if (message.type === 'chat') {
-        this.messages.push({
-          sender: peerId,
-          text: message.data.text,
+  constructor() {
+    // Setup effect to watch for new network messages
+    effect(() => {
+      const networkMessages = this.networkService.messages();
+      const lastMessage = networkMessages[networkMessages.length - 1];
+      
+      if (lastMessage?.message.type === 'chat') {
+        this.messages.update(current => [...current, {
+          sender: lastMessage.peerId,
+          text: lastMessage.message.data.text,
           timestamp: Date.now()
-        });
+        }]);
+        
         this.scrollToBottom();
       }
     });
   }
 
   async sendMessage() {
-    if (!this.currentMessage.trim()) return;
+    const text = this.currentMessage().trim();
+    if (!text) return;
     
-    const message = {
+    await this.networkService.sendMessage({
       type: 'chat',
-      data: { text: this.currentMessage }
-    };
-    
-    await this.networkService.sendMessage(message);
-    
-    this.messages.push({
-      sender: this.networkService.getSelfId(),
-      text: this.currentMessage,
-      timestamp: Date.now()
+      data: { text }
     });
     
-    this.currentMessage = '';
-    this.scrollToBottom();
+    this.currentMessage.set('');
   }
 
   toggleMinimize() {
-    this.isMinimized = !this.isMinimized;
+    this.isMinimized.update(v => !v);
   }
 
   private scrollToBottom() {
