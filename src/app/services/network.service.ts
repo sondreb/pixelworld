@@ -8,12 +8,18 @@ export interface PeerMessage {
   data: any;
 }
 
+export interface PeerInfo {
+  id: string;
+  name: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class NetworkService {
   private room?: Room;
   private peers = new BehaviorSubject<string[]>([]);
+  private peerNames = new Map<string, string>();
   
   constructor() {
     this.initializeNetwork();
@@ -33,9 +39,16 @@ export class NetworkService {
     this.room = joinRoom(config, 'main-room');
 
     // Handle peer connections
-    this.room.onPeerJoin((peerId) => {
+    this.room.onPeerJoin(async (peerId) => {
       const currentPeers = this.peers.value;
       this.peers.next([...currentPeers, peerId]);
+      
+      // Send our name to the new peer
+      await this.sendMessage({
+        type: 'peer-name',
+        data: { name: `Player ${Math.floor(Math.random() * 1000)}` }
+      });
+      
       console.log('Peer joined:', peerId);
     });
 
@@ -69,5 +82,13 @@ export class NetworkService {
 
   getSelfId() {
     return selfId;
+  }
+
+  getPeerName(peerId: string): string {
+    return this.peerNames.get(peerId) || 'Unknown Player';
+  }
+
+  setPeerName(peerId: string, name: string) {
+    this.peerNames.set(peerId, name);
   }
 }
